@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+mosquitto_sub -t home/lab/backup -v | while read topic msg; do
+    if [ "$msg" = "backup-now" ]; then
+	    # path to backup script
+    fi
+done
+

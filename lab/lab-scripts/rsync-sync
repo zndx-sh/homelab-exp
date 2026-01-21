@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+set -e
+
+logtime=$( date '+%d-%m-%Y_%H:%M' )
+
+LAB_DIR="$HOME/lab"
+TMPLOG="$LAB_DIR/tmp/rsync-tmp.log"
+LOCAL_DIR="$LAB_DIR/lab-backup/"
+PHONE_DIR="/storage/emulated/0/lab-backup/"
+LOGDIR="$LAB_DIR/rsync-logs"
+LOGFILE="$LOGDIR/rsync-log_$logtime.log"
+CONFLICT_DIR="$LAB_DIR/rsync-conflicts"
+LOCKFILE="$(dirname "$TMPLOG")/rsync-script.lock"
+
+mkdir -p "$LOGDIR" "$CONFLICT_DIR" "$(dirname "$TMPLOG")"
+
+if [ -e "$LOCKFILE" ]; then
+	echo "Script is already running!"
+	exit 1
+fi
+touch "$LOCKFILE"
+trap 'rm -f "$LOCKFILE"' EXIT
+
+echo "# This file contains lastest log info -- $logtime" > "$TMPLOG"
+
+rsync -avz --backup --backup-dir="$CONFLICT_DIR" phone:"$PHONE_DIR" "$LOCAL_DIR" >> "$TMPLOG" 
+rsync -avz --backup --backup-dir="$CONFLICT_DIR" "$LOCAL_DIR" phone:"$PHONE_DIR" >> "$TMPLOG"
+cp "$TMPLOG" "$LOGFILE"
+
+echo "---------------------------------------------" >> "$TMPLOG" 
+
+rclone sync "$LOCAL_DIR" REMOTE_CLOUD_STORAGE:lab-backup >> "$TMPLOG"
